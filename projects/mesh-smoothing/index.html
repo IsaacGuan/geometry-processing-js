@@ -14,6 +14,7 @@
 	</div>
 	<div id="info">
 		<h2>Mesh Smoothing</h2>
+		<div id="meta">Loading...</div>
 	</div>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/87/three.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.5/dat.gui.min.js"></script>
@@ -52,6 +53,8 @@
 		};
 
 		let positions = undefined;
+		let uvs = undefined;
+		let normals = undefined;
 		let colors = undefined;
 		let indices = undefined;
 
@@ -60,7 +63,7 @@
 
 		let filename = "bunny.obj";
 
-		const COLOR_DEFAULT = new Vector(1.5, 1.5, 1.5);
+		const ORANGE = new Vector(1.0, 0.5, 0.0);
 		let guiFields = {
 			"Load Mesh": function() {
 				input.click();
@@ -68,6 +71,8 @@
 			"Export Mesh": function() {
 				exportFile(MeshIO.writeOBJ({
 					"v": positions,
+					"vt": uvs,
+					"vn": normals,
 					"f": indices
 				}));
 			},
@@ -193,6 +198,11 @@
 				// create a THREE.js mesh (and geometry) object
 				initThreeMesh();
 				scene.add(threeMesh);
+
+				// update metadata
+				let element = document.getElementById("meta");
+				element.textContent = "";
+
 			} else {
 				alert("Unable to build halfedge mesh");
 			}
@@ -215,9 +225,14 @@
 				positions[3 * i + 1] = position.y;
 				positions[3 * i + 2] = position.z;
 
-				colors[3 * i + 0] = COLOR_DEFAULT.x;
-				colors[3 * i + 1] = COLOR_DEFAULT.y;
-				colors[3 * i + 2] = COLOR_DEFAULT.z;
+				let normal = geometry.vertexNormalEquallyWeighted(v);
+				normals[3 * i + 0] = normal.x;
+				normals[3 * i + 1] = normal.y;
+				normals[3 * i + 2] = normal.z;
+
+				colors[3 * i + 0] = ORANGE.x;
+				colors[3 * i + 1] = ORANGE.y;
+				colors[3 * i + 2] = ORANGE.z;
 			}
 
 			// fill index buffer
@@ -233,6 +248,7 @@
 			// set geometry
 			threeGeometry.setIndex(new THREE.BufferAttribute(indices, 1));
 			threeGeometry.addAttribute("position", new THREE.BufferAttribute(positions, 3));
+			threeGeometry.addAttribute("normal", new THREE.BufferAttribute(normals, 3));
 			threeGeometry.addAttribute("color", new THREE.BufferAttribute(colors, 3));
 
 			// create material
@@ -249,7 +265,7 @@
 			// create mesh
 			threeMesh = new THREE.Mesh(threeGeometry, threeMaterial);
 
-			// toggle normals, curvature and wireframe
+			// toggle wireframe
 			toggleWireframe(showWireframe);
 		}
 
