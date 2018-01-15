@@ -31,6 +31,7 @@
 	<script src="../../input/bunny.js"></script>
 	<script src="../../utils/meshio.js"></script>
 	<script src="../../utils/colormap.js"></script>
+	<script src="mesh-smoothing.js"></script>
 	<script>
 		if (!Detector.webgl) Detector.addGetWebGLMessage();
 
@@ -41,6 +42,7 @@
 		let useBasicMaterial = false;
 		let showWireframe = false;
 		let scene = undefined;
+		let originalObject = bunny;
 		let threeMesh = undefined;
 		let threeGeometry = undefined;
 		let wireframe = undefined;
@@ -60,6 +62,9 @@
 
 		let mesh = undefined;
 		let geometry = undefined;
+		let meshSmoothing = undefined;
+		let modifiedMeshSmoothing = undefined;
+		let steps = 1;
 
 		let filename = "bunny.obj";
 
@@ -76,6 +81,19 @@
 					"f": indices
 				}));
 			},
+			"Scheme": "MS",
+			"Smoothing Steps": steps,
+			"Apply": function() {
+				if (this.Scheme == "MS") {
+					meshSmoothing.apply(steps);
+				} else if (this.Scheme == "Modified MS") {
+					alert("Modified Mesh Smoothing");
+				}
+				updateMesh();
+			},
+			"Reset": function() {
+				resetMesh();
+			},
 			"Show Wireframe": showWireframe
 		};
 
@@ -91,7 +109,7 @@
 			initCamera();
 			initScene();
 			initLights();
-			initMesh(bunny);
+			initMesh(originalObject);
 			initControls();
 			addEventListeners();
 		}
@@ -113,6 +131,10 @@
 			io.add(guiFields, "Export Mesh");
 			io.open();
 
+			gui.add(guiFields, "Scheme", ["MS", "Modified MS"]).listen();
+			gui.add(guiFields, "Smoothing Steps", 1, 10).step(1).onChange(updateSmoothingSteps).listen();
+			gui.add(guiFields, "Apply");
+			gui.add(guiFields, "Reset");
 			gui.add(guiFields, "Show Wireframe").onChange(toggleWireframe).listen();
 		}
 
@@ -124,7 +146,8 @@
 				if (filename.endsWith(".obj")) {
 					let reader = new FileReader();
 					reader.onload = function(e) {
-						initMesh(reader.result);
+						originalObject = reader.result
+						initMesh(originalObject);
 					}
 
 					reader.onerror = function(e) {
@@ -150,6 +173,34 @@
 			element.click();
 
 			document.body.removeChild(element);
+		}
+
+		function resetMesh() {
+			initMesh(originalObject);
+		}
+
+		function updateMesh() {
+			for (let v of mesh.vertices) {
+				let i = v.index;
+
+				let position = geometry.positions[v];
+				positions[3 * i + 0] = position.x;
+				positions[3 * i + 1] = position.y;
+				positions[3 * i + 2] = position.z;
+
+				let normal = geometry.vertexNormalEquallyWeighted(v);
+				normals[3 * i + 0] = normal.x;
+				normals[3 * i + 1] = normal.y;
+				normals[3 * i + 2] = normal.z;
+			}
+
+			threeGeometry.attributes.position.needsUpdate = true;
+			threeGeometry.attributes.normal.needsUpdate = true;
+			wireframe.geometry = new THREE.WireframeGeometry(threeGeometry);
+		}
+
+		function updateSmoothingSteps(value) {
+			steps = value;
 		}
 
 		function toggleWireframe(checked) {
@@ -198,6 +249,9 @@
 				// create a THREE.js mesh (and geometry) object
 				initThreeMesh();
 				scene.add(threeMesh);
+
+				// initialize mesh smoothing
+				meshSmoothing = new MeshSmoothing(geometry);
 
 				// update metadata
 				let element = document.getElementById("meta");
