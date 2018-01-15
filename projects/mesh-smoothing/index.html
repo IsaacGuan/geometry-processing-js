@@ -32,6 +32,7 @@
 	<script src="../../utils/meshio.js"></script>
 	<script src="../../utils/colormap.js"></script>
 	<script src="mesh-smoothing.js"></script>
+	<script src="modified-mesh-smoothing.js"></script>
 	<script>
 		if (!Detector.webgl) Detector.addGetWebGLMessage();
 
@@ -87,7 +88,8 @@
 				if (this.Scheme == "MS") {
 					meshSmoothing.apply(steps);
 				} else if (this.Scheme == "Modified MS") {
-					alert("Modified Mesh Smoothing");
+					//alert("Modified Mesh Smoothing");
+					modifiedMeshSmoothing.apply(steps);
 				}
 				updateMesh();
 			},
@@ -252,6 +254,7 @@
 
 				// initialize mesh smoothing
 				meshSmoothing = new MeshSmoothing(geometry);
+				modifiedMeshSmoothing = new ModifiedMeshSmoothing(geometry);
 
 				// update metadata
 				let element = document.getElementById("meta");
